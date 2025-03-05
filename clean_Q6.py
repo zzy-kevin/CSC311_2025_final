@@ -2,15 +2,6 @@ import numpy as np
 import csv
 import pandas as pd
 
-df = pd.read_csv("cleaned_data_combined_modified.csv")
-
-print(df.head())
-print(df.describe())
-
-# renaming to shorten the name, are you guys ok with this naming convention?
-new_column_name = ["id", "Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8", "target"]
-df.columns = new_column_name
-
 
 def replace_common_words_Q6(value):
     """
@@ -57,8 +48,9 @@ def replace_common_words_Q6(value):
         return "none"
     if "ayran" in value.lower():
         return "ayran"
+    if "any" in value.lower():
+        return "any"
     return "other"
-
 
 
 def clean_Q6(df):
@@ -71,10 +63,17 @@ def clean_Q6(df):
     df_clean_Q6['Q6'] = df_clean_Q6['Q6'].apply(replace_common_words_Q6)
     return df_clean_Q6
 
-# cleans and return df with cleaned Q6
-df_cleaned_Q6 = clean_Q6(df)
-print(df_cleaned_Q6["Q6"])
+if __name__ == '__main__':
+    df = pd.read_csv("cleaned_data_combined_modified.csv")
 
-# Prints the original drink that got relabelled to "other"
-other_data = df[df_cleaned_Q6['Q6'].str.startswith('other')]['Q6']
-print(", ".join(other_data.to_list()))
+    # renaming to shorten the name, are you guys ok with this naming convention?
+    new_column_name = ["id", "Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7", "Q8", "target"]
+    df.columns = new_column_name
+
+    # cleans and return df with cleaned Q6
+    df_cleaned_Q6 = clean_Q6(df)
+    print(df_cleaned_Q6["Q6"])
+
+    # Prints the original drink that got relabelled to "other"
+    other_data = df[df_cleaned_Q6['Q6'].str.startswith('other')]['Q6']
+    print(", ".join(other_data.to_list()))
