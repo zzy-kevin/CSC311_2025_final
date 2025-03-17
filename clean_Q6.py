@@ -5,52 +5,81 @@ import pandas as pd
 
 def replace_common_words_Q6(value):
     """
-    Note that we should rank these if statement in order of importance since for multiple drink we only return one.
-    For example miso comes before all else because if someone said miso its probably sushi so Q6 should be miso not coke etc.
-    Also milk tea should be before tea since "tea" is in "milk tea"
+    Milk tea should be not include tea since "tea" is in "milk tea"
     Everything should be lower case!
     """
-    if "miso" in value.lower() or "japan" in value.lower() or "ramune" in value.lower() or "sake" in value.lower() \
-            or "soju" in value.lower() or "matcha" in value.lower() or "calpis" in value.lower()\
-            or "soy sauce" in value.lower():
-        # this has all the typical sushi and Japan related drink
-        return "miso"
-    if "coke" in value.lower() or "cola" in value.lower() or "pepsi" in value.lower():
-        return "coke"
-    if "iced tea" in value.lower() or "nestea" in value.lower() or "lemon" in value.lower() or "ice tea" in value.lower():
-        # also includes lemonade
-        return "iced tea"
-    if "milk tea" in value.lower() or "bubble tea" in value.lower() or "boba" in value.lower():
-        return "bubble tea"
-    if "sprite" in value.lower() or "root beer" in value.lower() or "soda" in value.lower() or "ginger" in value.lower() \
-            or "crush" in value.lower() or "pop" in value.lower() or "fanta" in value.lower() or "7up" in value.lower() \
-            or "fruitopia" in value.lower() or "mountain dew" in value.lower() or "soft" in value.lower() \
-            or "pepper" in value.lower() or "fruitopia" in value.lower() or "dry" in value.lower() or "carbonated" in value.lower():
-        # all carbonated drink other than coke and sparkling water
-        return "soda"
-    if "tea" in value.lower():
-        return "tea"
-    if "soup" in value.lower():
-        return "soup"
-    if "wine" in value.lower() or "beer" in value.lower() or "alcohol" in value.lower() or "cocktail" in value.lower()\
-            or "champagne" in value.lower() or "rum" in value.lower():
-        return "wine"
-    if "juice" in value.lower() or "smoothie" in value.lower():
-        return "juice"
-    if "milk" in value.lower():
-        return "milk"
-    if "sparkling water" in value.lower():
-        return "sparkling water"
-    if "water" in value.lower():
-        return "water"
-    if "no" in value.lower() or "nan" in value.lower():
-        # also includes none
-        return "none"
-    if "ayran" in value.lower():
-        return "ayran"
-    if "any" in value.lower():
-        return "any"
-    return "other"
+    value_lower = str(value).lower()
+    categories = []
+
+    # Check each condition in order and append if any keyword is present and not excluded by more specific categories
+
+    # Condition for miso
+    if any(word in value_lower for word in
+           ["miso", "japan", "ramune", "sake", "soju", "matcha", "calpis", "soy sauce"]):
+        categories.append("miso")
+
+    # Condition for coke
+    if any(word in value_lower for word in ["coke", "cola", "pepsi"]):
+        categories.append("coke")
+
+    # Condition for iced tea
+    if any(word in value_lower for word in ["iced tea", "nestea", "lemon", "ice tea"]):
+        categories.append("iced tea")
+
+    # Condition for bubble tea
+    if any(word in value_lower for word in ["milk tea", "bubble tea", "boba"]):
+        categories.append("bubble tea")
+
+    # Condition for soda
+    if any(word in value_lower for word in ["sprite", "root beer", "soda", "ginger", "crush", "pop", "fanta", "7up",
+                                            "fruitopia", "mountain dew", "soft", "pepper", "dry", "carbonated"]):
+        categories.append("soda")
+
+    # Condition for tea (only if not already covered by iced tea or bubble tea)
+    if "tea" in value_lower and not any(cat in categories for cat in ["iced tea", "bubble tea"]):
+        categories.append("tea")
+
+    # Condition for soup
+    if "soup" in value_lower:
+        categories.append("soup")
+
+    # Condition for wine
+    if any(word in value_lower for word in ["wine", "beer", "alcohol", "cocktail", "champagne", "rum"]):
+        categories.append("wine")
+
+    # Condition for juice
+    if any(word in value_lower for word in ["juice", "smoothie"]):
+        categories.append("juice")
+
+    # Condition for milk (only if not already covered by bubble tea)
+    if "milk" in value_lower and "bubble tea" not in categories:
+        categories.append("milk")
+
+    # Condition for sparkling water
+    if "sparkling water" in value_lower:
+        categories.append("sparkling water")
+
+    # Condition for water (only if not already covered by sparkling water)
+    if "water" in value_lower and "sparkling water" not in categories:
+        categories.append("water")
+
+    # Condition for none
+    if any(word in value_lower for word in ["no", "nan"]):
+        categories.append("none")
+
+    # Condition for ayran
+    if "ayran" in value_lower:
+        categories.append("ayran")
+
+    # Condition for any
+    if "any" in value_lower and categories == []:
+        categories.append("any")
+
+    # If no categories matched, append 'other'
+    if not categories:
+        categories.append("other")
+
+    return ", ".join(categories)
 
 
 def clean_Q6(df):
@@ -63,7 +92,9 @@ def clean_Q6(df):
     df_clean_Q6['Q6'] = df_clean_Q6['Q6'].apply(replace_common_words_Q6)
     return df_clean_Q6
 
+
 if __name__ == '__main__':
+
     df = pd.read_csv("cleaned_data_combined_modified.csv")
 
     # renaming to shorten the name, are you guys ok with this naming convention?
@@ -77,3 +108,10 @@ if __name__ == '__main__':
     # Prints the original drink that got relabelled to "other"
     other_data = df[df_cleaned_Q6['Q6'].str.startswith('other')]['Q6']
     print(", ".join(other_data.to_list()))
+
+    # Prints the original drink that got relabelled to "other"
+    other_data = df[df_cleaned_Q6['Q6'].str.startswith('other')]['Q6']
+    print(", ".join(other_data.to_list()))
+
+    print(df_cleaned_Q6["Q6"][647])
+    print(df["Q6"][647])
