@@ -56,6 +56,8 @@ def clean_Q8(df):
         'I will have some of this food item with my hot sauce': 4
     }
     df['Q8'] = df['Q8'].map(mapping)
+    #replace NaN with 0
+    df['Q8'] = df['Q8'].fillna(0)
     return df
 
 
@@ -108,8 +110,8 @@ def parse_main(df):
     # dropping these for now
     df_final = df_final.drop(columns=["id","Q5"])
 
-    print(df_final.columns)
-    print(df_final.iloc[1])
-    print(df_final.iloc[10])
+    # print(df_final.columns)
+    # print(df_final.iloc[1])
+    # print(df_final.iloc[10])
 
     return df_final
