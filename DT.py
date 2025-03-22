@@ -82,6 +82,63 @@ def load_dt_predictor(filename):
     return predict
 
 
+def save_sklearn_rf(model, filename):
+    """Save sklearn Random Forest to pickle file"""
+    with open(filename, 'wb') as f:
+        trees_data = []
+        for tree in model.estimators_:
+            tree_data = {
+                'children_left': tree.tree_.children_left,
+                'children_right': tree.tree_.children_right,
+                'feature': tree.tree_.feature,
+                'threshold': tree.tree_.threshold,
+                'value': tree.tree_.value
+            }
+            trees_data.append(tree_data)
+        pickle.dump({
+            'trees': trees_data,
+            'classes': model.classes_
+        }, f)
+
+
+def load_rf_predictor(filename):
+    """Load RF structure and create predictor function"""
+    with open(filename, 'rb') as f:
+        rf_data = pickle.load(f)
+
+    trees_data = rf_data['trees']
+    classes = rf_data['classes']
+
+    def predict(X):
+        def predict_single(x):
+            class_indices = []
+            for tree in trees_data:
+                node = 0
+                children_left = tree['children_left']
+                children_right = tree['children_right']
+                feature = tree['feature']
+                threshold = tree['threshold']
+                value = tree['value']
+                # Traverse tree until leaf
+                while children_left[node] != -1:
+                    if x[feature[node]] <= threshold[node]:
+                        node = children_left[node]
+                    else:
+                        node = children_right[node]
+                # Get class index from leaf node value
+                class_idx = np.argmax(value[node])
+                class_indices.append(class_idx)
+            # Majority vote
+            counts = np.bincount(class_indices)
+            majority_idx = np.argmax(counts)
+            return classes[majority_idx]
+
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+        return np.array([predict_single(x) for x in X])
+
+    return predict
+
 def evaluate_classification(true_labels, pred_labels):
     # Calculate accuracy
     accuracy = np.mean(np.array(true_labels) == np.array(pred_labels))
@@ -143,24 +200,50 @@ def cross_val_accuracy(model, X, y, n_splits=5):
 
 
 # train and load
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.datasets import load_iris
+# from sklearn.tree import DecisionTreeClassifier
+#
+# df_target = df_final["target"]
+# df_feature = df_final.drop(columns="target", axis = 1)
+#
+# # Train and save model
+# clf = DecisionTreeClassifier(max_depth=10).fit(df_feature, df_target)
+# save_sklearn_dt(clf, 'dt_model.pkl')
+#
+#
+# # Load predictor and make predictions
+# dt_predict = load_dt_predictor('dt_model.pkl')
+# X_new = df_feature.iloc[:10]
+# print("Predictions:", dt_predict(X_new))
+# print("Sklearn predictions:", clf.predict(X_new))
+
+from sklearn.ensemble import RandomForestClassifier
 
 df_target = df_final["target"]
-df_feature = df_final.drop(columns="target", axis = 1)
+df_feature = df_final.drop(columns="target", axis=1)
 
-# Train and save model
-clf = DecisionTreeClassifier(max_depth=10).fit(df_feature, df_target)
-save_sklearn_dt(clf, 'dt_model.pkl')
+# Train and save Random Forest model
+clf = RandomForestClassifier(n_estimators=100, max_depth=13, max_features="log2").fit(df_feature, df_target)
+save_sklearn_rf(clf, 'rf_model.pkl')  # Using our new RF save function
 
-
-# Load predictor and make predictions
-dt_predict = load_dt_predictor('dt_model.pkl')
+# Load RF predictor and make predictions
+rf_predict = load_rf_predictor('rf_model.pkl')  # Using our new RF loader
 X_new = df_feature.iloc[:10]
-print("Predictions:", dt_predict(X_new))
-print("Sklearn predictions:", clf.predict(X_new))
+print("Custom RF Predictions:", rf_predict(X_new))
+print("Sklearn RF Predictions:", clf.predict(X_new))
 
-accuracy, cm, error_analysis = evaluate_classification(dt_predict(df_feature), df_target)
+# For comparison with evaluation function
+all_preds = rf_predict(df_feature)
+sklearn_preds = clf.predict(df_feature)
+
+# Evaluate performance
+accuracy, cm, most_errors = evaluate_classification(df_target, all_preds)
+print(f"\nCustom RF Accuracy: {accuracy:.4f}")
+print("\nConfusion Matrix:")
+print(cm)
+print("\nMost Frequent Errors:")
+print(most_errors)
+
+accuracy, cm, error_analysis = evaluate_classification(rf_predict(df_feature), df_target)
 
 print(f"Accuracy: {accuracy:.2%}")
 print("\nConfusion Matrix:")
